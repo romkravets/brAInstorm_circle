@@ -1,0 +1,14 @@
+{
+  "name": "brainstorm-playwright",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "login:claude": "node index.js login claude",
+    "login:gemini": "node index.js login gemini",
+    "run": "node index.js run"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "playwright": "^1.49.1"
+  }
+}
