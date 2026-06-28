@@ -44,8 +44,9 @@ export default function ParticipantCard({
 
   const cardStyle = {
     background: isEmpty ? 'var(--bc-surface)' : color.bg,
-    border: `2px solid ${isActive ? color.dot : (isEmpty ? 'var(--bc-border)' : color.border)}`,
+    borderWidth: '2px',
     borderStyle: isEmpty ? 'dashed' : 'solid',
+    borderColor: isActive ? color.dot : (isEmpty ? 'var(--bc-border)' : color.border),
   };
 
   return (
