@@ -1,6 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
-import { generatePrompt } from '../lib/promptTemplates.js';
+import { useEffect, useRef, useState } from 'react';
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -11,7 +10,7 @@ function timeAgo(ts) {
   return `${Math.floor(diff / 3600)}год тому`;
 }
 
-export default function Header({ session, savedAt, onReset, onExport, onNewRound }) {
+export default function Header({ session, savedAt, onReset, onExport, onNewRound, isRunActive = false }) {
   const [editTitle, setEditTitle] = useState(false);
   const [titleVal,  setTitleVal]  = useState(session.title);
   const [tick,      setTick]      = useState(0);
@@ -32,7 +31,7 @@ export default function Header({ session, savedAt, onReset, onExport, onNewRound
 
   return (
     <header
-      className="flex items-center gap-3 px-4 py-3 border-b flex-shrink-0"
+      className="flex items-center gap-3 px-4 py-3 border-b shrink-0"
       style={{ background: 'var(--bc-surface)', borderColor: 'var(--bc-border)' }}
     >
       <span className="text-xl">🧠</span>
@@ -71,8 +70,12 @@ export default function Header({ session, savedAt, onReset, onExport, onNewRound
         {/* New round */}
         <button
           onClick={onNewRound}
+          disabled={isRunActive}
           className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hidden md:block"
-          style={{ color: 'var(--bc-accent)', background: 'var(--bc-accent-light)' }}
+          style={isRunActive
+            ? { color: 'var(--bc-text-hint)', background: 'var(--bc-border)', cursor: 'not-allowed' }
+            : { color: 'var(--bc-accent)', background: 'var(--bc-accent-light)' }
+          }
         >
           + Раунд
         </button>

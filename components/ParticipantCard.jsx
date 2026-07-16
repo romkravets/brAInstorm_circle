@@ -1,21 +1,29 @@
 'use client';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ollamaErrorMessage } from '../hooks/useOllama.js';
 
 export default function ParticipantCard({
   participant, response, isLoading, isActive, otherParticipants,
   onResponseChange, onPromptRequest, onRunOllama, onSetActive,
+  runStatus = 'idle', runError = '',
 }) {
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [expanded,    setExpanded]    = useState(false);
   const [sendMenu,    setSendMenu]    = useState(false);
   const [ollamaError, setOllamaError] = useState('');
   const [mounted,     setMounted]     = useState(false);
+  const [draft,       setDraft]       = useState(response);
   const debounceRef   = useRef(null);
   const menuRef       = useRef(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    setDraft(response ?? '');
+  }, [response]);
+
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
 
   // Close menu on outside click
   useEffect(() => {
@@ -26,6 +34,7 @@ export default function ParticipantCard({
   }, [menuOpen]);
 
   const handleTextChange = useCallback((text) => {
+    setDraft(text);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => onResponseChange(text), 300);
   }, [onResponseChange]);
@@ -40,7 +49,9 @@ export default function ParticipantCard({
   }, [onRunOllama, participant]);
 
   const { color, name, respondMode, url } = participant;
-  const isEmpty = !response;
+  const cardText = draft ?? '';
+  const isEmpty = !cardText;
+  const cardError = runError || ollamaError;
 
   const cardStyle = {
     background: isEmpty ? 'var(--bc-surface)' : color.bg,
@@ -58,7 +69,7 @@ export default function ParticipantCard({
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: color.dot }} />
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: color.dot }} />
           <span className="font-medium text-sm flex-1 truncate" style={{ color: color.text }}>{name}</span>
 
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: color.bg, color: color.text, border: `1px solid ${color.border}` }}>
@@ -88,7 +99,7 @@ export default function ParticipantCard({
             </button>
             {menuOpen && (
               <div
-                className="absolute right-0 top-full mt-1 z-20 rounded-xl shadow-xl py-1 min-w-[160px]"
+                className="absolute right-0 top-full mt-1 z-20 rounded-xl shadow-xl py-1 min-w-40"
                 style={{ background: 'var(--bc-surface)', border: '1px solid var(--bc-border)' }}
                 onClick={e => e.stopPropagation()}
               >
@@ -108,7 +119,7 @@ export default function ParticipantCard({
                 </button>
                 <div className="my-1 border-t" style={{ borderColor: 'var(--bc-border)' }} />
                 <button
-                  onClick={() => { onResponseChange(''); setMenuOpen(false); }}
+                  onClick={() => { setDraft(''); onResponseChange(''); setMenuOpen(false); }}
                   className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-50"
                   style={{ color: 'var(--bc-danger)' }}
                 >
@@ -136,16 +147,16 @@ export default function ParticipantCard({
             className="w-full bg-transparent outline-none text-sm leading-relaxed"
             style={{ color: 'var(--bc-text)', minHeight: 120 }}
             placeholder={`Вставте відповідь від ${name}...`}
-            defaultValue={response}
+            value={cardText}
             onChange={e => handleTextChange(e.target.value)}
             onClick={e => e.stopPropagation()}
           />
         </div>
 
         {/* Ollama error */}
-        {ollamaError && (
+        {cardError && (
           <div className="mx-4 mb-2 px-3 py-2 rounded-lg text-xs" style={{ background: '#fdeaea', color: 'var(--bc-danger)' }}>
-            {ollamaError}
+            {cardError}
           </div>
         )}
 
@@ -155,11 +166,11 @@ export default function ParticipantCard({
           {respondMode === 'ollama' && (
             <button
               onClick={(e) => { e.stopPropagation(); handleRunOllama(); }}
-              disabled={isLoading}
+              disabled={isLoading || runStatus === 'running'}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              style={{ background: isLoading ? 'var(--bc-border)' : color.dot, color: '#fff', cursor: isLoading ? 'not-allowed' : 'pointer' }}
+              style={{ background: (isLoading || runStatus === 'running') ? 'var(--bc-border)' : color.dot, color: '#fff', cursor: (isLoading || runStatus === 'running') ? 'not-allowed' : 'pointer' }}
             >
-              {isLoading ? '⟳ Генерує...' : '▶ Запустити'}
+              {(isLoading || runStatus === 'running') ? '⟳ Генерує...' : '▶ Запустити'}
             </button>
           )}
 
@@ -167,9 +178,9 @@ export default function ParticipantCard({
           <div className="relative">
             <button
               onClick={(e) => { e.stopPropagation(); setSendMenu(v => !v); }}
-              disabled={!response}
+              disabled={!cardText}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              style={response
+              style={cardText
                 ? { color: color.text, background: color.bg, border: `1px solid ${color.border}` }
                 : { color: 'var(--bc-text-hint)', cursor: 'not-allowed' }
               }
@@ -178,7 +189,7 @@ export default function ParticipantCard({
             </button>
             {sendMenu && (
               <div
-                className="absolute left-0 bottom-full mb-1 z-20 rounded-xl shadow-xl py-1 min-w-[150px]"
+                className="absolute left-0 bottom-full mb-1 z-20 rounded-xl shadow-xl py-1 min-w-37.5"
                 style={{ background: 'var(--bc-surface)', border: '1px solid var(--bc-border)' }}
                 onClick={e => e.stopPropagation()}
               >
@@ -197,9 +208,9 @@ export default function ParticipantCard({
           {/* Deepen */}
           <button
             onClick={(e) => { e.stopPropagation(); onPromptRequest('deepen', participant, null); }}
-            disabled={!response}
+            disabled={!cardText}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={response
+            style={cardText
               ? { color: color.text, background: color.bg, border: `1px solid ${color.border}` }
               : { color: 'var(--bc-text-hint)', cursor: 'not-allowed' }
             }
@@ -265,7 +276,7 @@ function SendTargetList({ targets, onSelect }) {
       className="w-full flex items-center gap-2 px-4 py-2 text-sm text-left transition-colors hover:bg-gray-50"
       style={{ color: 'var(--bc-text)' }}
     >
-      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color.dot }} />
+      <div className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color.dot }} />
       {t.name}
     </button>
   ));
