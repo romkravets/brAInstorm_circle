@@ -11,12 +11,14 @@
 Замість Pure HTML/JS одного файлу.
 
 **Чому:**
+
 - Природна структура файлів без болю масштабу
 - localhost → Clipboard API працює без fallback
 - Можна додати API route для опційного AI-синтезу пізніше (не в MVP)
 - Deploy на Vercel одною командою
 
 **Що НЕ використовуємо в MVP:**
+
 - Бекенд / база даних (все в localStorage)
 - Auth
 - API routes (поки що)
@@ -122,6 +124,7 @@ brainstorm-circle/
 ### 7. Дизайн-система — без змін
 
 Використовуємо кольори з `BRAINSTORM_CIRCLE.md` §5 без змін:
+
 - Фон: `#FAFAF8`, поверхня: `#FFFFFF`, акцент: `#534AB7`
 - Вижимка: `#854F0B` / `#FAEEDA`
 - Tailwind CSS через кастомні CSS variables (не хардкод класи)
@@ -136,14 +139,14 @@ brainstorm-circle/
 
 ```js
 const PARTICIPANT_COLORS = [
-  { dot: '#534AB7', bg: '#EEEDFE', text: '#3C3489', border: '#AFA9EC' }, // фіолетовий
-  { dot: '#0F6E56', bg: '#E6F5F1', text: '#0A5240', border: '#7DC5B5' }, // зелений
-  { dot: '#A32D2D', bg: '#FDEAEA', text: '#7A1E1E', border: '#E8A0A0' }, // червоний
-  { dot: '#854F0B', bg: '#FAEEDA', text: '#6A3D08', border: '#D9A96A' }, // золотий
-  { dot: '#1565C0', bg: '#E3F0FF', text: '#0D47A1', border: '#90BBF0' }, // синій
-  { dot: '#6A1B9A', bg: '#F3E5F5', text: '#4A148C', border: '#CE93D8' }, // пурпурний
-  { dot: '#00695C', bg: '#E0F2F1', text: '#004D40', border: '#80CBC4' }, // бірюзовий
-  { dot: '#E65100', bg: '#FBE9E7', text: '#BF360C', border: '#FFAB91' }, // помаранчевий
+  { dot: "#534AB7", bg: "#EEEDFE", text: "#3C3489", border: "#AFA9EC" }, // фіолетовий
+  { dot: "#0F6E56", bg: "#E6F5F1", text: "#0A5240", border: "#7DC5B5" }, // зелений
+  { dot: "#A32D2D", bg: "#FDEAEA", text: "#7A1E1E", border: "#E8A0A0" }, // червоний
+  { dot: "#854F0B", bg: "#FAEEDA", text: "#6A3D08", border: "#D9A96A" }, // золотий
+  { dot: "#1565C0", bg: "#E3F0FF", text: "#0D47A1", border: "#90BBF0" }, // синій
+  { dot: "#6A1B9A", bg: "#F3E5F5", text: "#4A148C", border: "#CE93D8" }, // пурпурний
+  { dot: "#00695C", bg: "#E0F2F1", text: "#004D40", border: "#80CBC4" }, // бірюзовий
+  { dot: "#E65100", bg: "#FBE9E7", text: "#BF360C", border: "#FFAB91" }, // помаранчевий
 ];
 ```
 
@@ -206,3 +209,32 @@ vercel
 - Webhook / Notion інтеграція
 - Шаблони питань
 - Server-side збереження (PostgreSQL)
+
+---
+
+## Оновлення 2026-07-17 — Automation Phase
+
+Після рев'ю поточного коду затверджено наступний крок: додати one-click автоматизацію брейншторму для нетехнічних юзерів, не ламаючи manual сценарій.
+
+### Що фіксуємо в коді першою чергою
+
+1. `ParticipantCard` переводимо на controlled textarea для коректного перемикання раундів.
+2. `BrainstormApp` переходить з прямого виклику Ollama на route handlers.
+3. `useSession` отримує run lifecycle state (`runMeta`, `participantMeta`) і нові reducer actions.
+
+### Які route handlers додаємо
+
+1. `GET /api/health/ollama`
+2. `POST /api/ai/generate`
+3. `POST /api/brainstorm/run-round`
+4. `POST /api/brainstorm/synthesize`
+
+### Принцип виконання
+
+- Manual mode залишається доступним як fallback.
+- Auto-mode запускає раунд і фінальну вижимку з одного потоку.
+- Часткові помилки не скасовують успішні відповіді інших учасників.
+
+Implementation-level payloads, action contracts і acceptance criteria винесені в окремий документ:
+
+- `IMPLEMENTATION_SPEC.md`

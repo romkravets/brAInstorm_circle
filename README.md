@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Brainstorm Circle
 
-## Getting Started
+Інструмент для колективного брейншторму між кількома AI-моделями.
 
-First, run the development server:
+## Що це зараз
+
+Поточний застосунок:
+
+- Next.js 16 (App Router)
+- Локальне збереження сесії через localStorage
+- Ручний режим (prompt copy-paste)
+- Локальний авто-режим через Ollama
+
+## Ключові документи
+
+- Product vision: BRAINSTORM_CIRCLE.md
+- MVP decisions: MVP_DECISIONS.md
+- Detailed product spec: SPEC.md
+- Automation implementation plan: IMPLEMENTATION_SPEC.md
+
+## Запуск
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Відкрий http://localhost:3000
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Поточний фокус (Automation Phase)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Мета фази: перейти від ручного copy-paste до one-click orchestration для нетехнічних користувачів.
 
-## Learn More
+План включає:
 
-To learn more about Next.js, take a look at the following resources:
+- Розширення reducer-моделі стану сесії
+- Controlled input для карток учасників
+- Нові App Router API handlers для генерації та оркестрації
+- Автоматичний синтез результату раунду
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Деталі payload/schema/action contracts описані в IMPLEMENTATION_SPEC.md.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Структура (основне)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+app/
+  BrainstormApp.jsx
+  page.js
+  layout.js
+  globals.css
+components/
+  ParticipantCard.jsx
+  ParticipantPanel.jsx
+  QuestionBar.jsx
+  RoundTabs.jsx
+  SynthesisBlock.jsx
+  PromptDrawer.jsx
+hooks/
+  useSession.js
+  useOllama.js
+lib/
+  promptTemplates.js
+  participants.js
+  storage.js
+```
