@@ -7,6 +7,7 @@ export default function ParticipantCard({
   participant, response, isLoading, isActive, otherParticipants,
   onResponseChange, onPromptRequest, onRunOllama, onSetActive,
 }) {
+  const [draft,       setDraft]       = useState(response ?? '');
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [expanded,    setExpanded]    = useState(false);
   const [sendMenu,    setSendMenu]    = useState(false);
@@ -16,6 +17,14 @@ export default function ParticipantCard({
   const menuRef       = useRef(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    setDraft(response ?? '');
+  }, [response]);
+
+  useEffect(() => {
+    return () => clearTimeout(debounceRef.current);
+  }, []);
 
   // Close menu on outside click
   useEffect(() => {
@@ -108,7 +117,11 @@ export default function ParticipantCard({
                 </button>
                 <div className="my-1 border-t" style={{ borderColor: 'var(--bc-border)' }} />
                 <button
-                  onClick={() => { onResponseChange(''); setMenuOpen(false); }}
+                  onClick={() => {
+                    setDraft('');
+                    onResponseChange('');
+                    setMenuOpen(false);
+                  }}
                   className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-50"
                   style={{ color: 'var(--bc-danger)' }}
                 >
@@ -136,8 +149,12 @@ export default function ParticipantCard({
             className="w-full bg-transparent outline-none text-sm leading-relaxed"
             style={{ color: 'var(--bc-text)', minHeight: 120 }}
             placeholder={`Вставте відповідь від ${name}...`}
-            defaultValue={response}
-            onChange={e => handleTextChange(e.target.value)}
+            value={draft}
+            onChange={e => {
+              const nextValue = e.target.value;
+              setDraft(nextValue);
+              handleTextChange(nextValue);
+            }}
             onClick={e => e.stopPropagation()}
           />
         </div>
@@ -166,7 +183,15 @@ export default function ParticipantCard({
           {/* Send to others */}
           <div className="relative">
             <button
-              onClick={(e) => { e.stopPropagation(); setSendMenu(v => !v); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (otherParticipants?.length === 1) {
+                  onPromptRequest('cross', participant, otherParticipants[0]);
+                  setSendMenu(false);
+                  return;
+                }
+                setSendMenu(v => !v);
+              }}
               disabled={!response}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               style={response

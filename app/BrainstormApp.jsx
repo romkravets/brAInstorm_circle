@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSession } from '../hooks/useSession.js';
 import { useOllama }  from '../hooks/useOllama.js';
 import { useClipboardPaste } from '../hooks/useClipboardPaste.js';
@@ -55,6 +55,10 @@ export default function Page() {
 
   // Prompt drawer state
   const [drawer, setDrawer] = useState({ open: false, title: '', text: '', url: '' });
+
+  useEffect(() => {
+    if (isNew) setShowOnboarding(true);
+  }, [isNew]);
 
   function openDrawer(title, text, url = '') {
     setDrawer({ open: true, title, text, url });
