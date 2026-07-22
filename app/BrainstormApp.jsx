@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useSession } from '../hooks/useSession.js';
-import { useOllama }  from '../hooks/useOllama.js';
+import { useCallback, useEffect, useState } from 'react';
 import { useClipboardPaste } from '../hooks/useClipboardPaste.js';
 import { useOllama } from '../hooks/useOllama.js';
 import { useSession } from '../hooks/useSession.js';
