@@ -1,183 +1,157 @@
 # Brainstorm Circle
 
-Інструмент для колективного брейншторму між кількома AI-моделями.
+Brainstorm Circle is an AI brainstorming workspace that helps teams and solo builders compare multiple model perspectives in one place.
 
-## Що це зараз
+The app combines manual chat workflows (Claude, Gemini, ChatGPT, etc.) with local Ollama automation and produces structured synthesis from round-based discussions.
 
-Поточний застосунок:
+![Brainstorm Circle UI illustration](./img.png)
 
-- Next.js 16 (App Router)
-- Локальне збереження сесії через localStorage
-- Ручний режим (prompt copy-paste)
-- Локальний авто-режим через Ollama
+## Why This Project
 
-## Ключові документи
+Most AI chats are single-threaded and hard to compare. Brainstorm Circle solves that by giving you:
 
-- Product vision: BRAINSTORM_CIRCLE.md
-- MVP decisions: MVP_DECISIONS.md
-- Detailed product spec: SPEC.md
-- Automation implementation plan: IMPLEMENTATION_SPEC.md
+- Multi-model cards in a single interface
+- Round-based iteration with explicit context progression
+- Cross-check summaries (agreements, conflicts, missing points)
+- Automatic local synthesis with Ollama
+- Persistent local session state (no DB required)
 
-## Запуск
+## SEO Description
+
+Brainstorm Circle is a Next.js 16 app for multi-AI brainstorming with Ollama automation, round-by-round comparison, cross-check summaries, and Markdown export.
+
+Primary keywords:
+
+- multi AI brainstorming tool
+- Ollama local AI orchestration
+- compare ChatGPT Claude Gemini answers
+- AI debate and synthesis workspace
+
+## What Is Implemented (Current State)
+
+- Next.js 16 App Router frontend
+- Session persistence in `localStorage`
+- Manual prompt flow for cloud chat tools
+- Ollama-backed generation via internal API routes
+- Full auto-round pipeline with partial-failure tolerance
+- Auto-synthesis endpoint with model fallback
+- Cross-check summary rendered in UI and included in Markdown export
+- Session controls:
+  - New session (full reset)
+  - Clear current round
+  - Keep only current round
+
+## Architecture Highlights (After Recent Changes)
+
+Client:
+
+- `app/BrainstormApp.jsx`
+  - Orchestrates manual flow, auto-round, auto-synthesis
+  - Maintains UI state for drawers, onboarding, toast, active participant
+
+Server routes:
+
+- `app/api/health/ollama/route.js`
+- `app/api/ai/generate/route.js`
+- `app/api/brainstorm/run-round/route.js`
+- `app/api/brainstorm/synthesize/route.js`
+
+Server utilities:
+
+- `lib/server/ollama.js`
+  - Ollama health/model listing
+  - model alias resolution (`llama3.1` -> installed tagged model)
+  - synthesis fallback model selection
+
+## Quick Start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Відкрий http://localhost:3000
+Open: `http://localhost:3000`
 
-## Ідеальний Workflow
-
-### 1. Підготуй середовище
-
-Якщо хочеш тільки manual flow, достатньо `npm run dev`.
-
-Якщо хочеш one-click automation через локальні моделі, окремо запусти Ollama:
+For local automation with Ollama:
 
 ```bash
 OLLAMA_ORIGINS=* ollama serve
 ollama pull llama3.1
-ollama pull gemma2
 ```
 
-`Автораунд` і `Автосинтез` працюють тільки коли в сесії є хоча б один Ollama-учасник.
+If your installed model has a tag (for example `llama3.1:8b`), the app now resolves common aliases automatically.
 
-### 2. Сформулюй питання
+## Ideal Workflow
 
-Впиши одне чітке питання у верхнє поле.
+### 1. Define a concrete question
 
-Добрий формат:
+Good:
 
 ```text
-Як нам запустити MVP за 2 тижні з мінімальним ризиком для якості?
+How can we ship an MVP in 2 weeks with minimal quality risk?
 ```
 
-Поганий формат:
+Too broad:
 
 ```text
-Що думаєш?
+What do you think?
 ```
 
-Чим конкретніше питання, тим корисніші initial prompts, cross-check і фінальна вижимка.
+### 2. Pick a mode
 
-### 3. Обери режим під задачу
+- `Synthesis` for convergence
+- `Debate` for alternative positions
+- `Critique` for weak-point analysis
+- `Depth` for iterative deepening
 
-- `Синтез ✨` — коли хочеш зібрати найкраще з кількох точок зору.
-- `Дебати ⚔️` — коли треба зіткнути альтернативні позиції.
-- `Критика 🔍` — коли треба знайти слабкі місця рішення.
-- `Глибина 🌊` — коли плануєш кілька раундів із поступовим уточненням.
+### 3. Build a participant mix
 
-Практично:
+Recommended baseline:
 
-- Для продукту або контенту починай із `Синтез`.
-- Для технічного вибору між двома підходами краще `Дебати`.
-- Для ревізії ризиків перед запуском краще `Критика`.
+1. 1 manual AI participant (Claude/Gemini)
+2. 2 local Ollama participants
 
-### 4. Збери правильний набір учасників
+### 4. Run a round
 
-Найкращий базовий сетап для змішаного режиму:
+Fast path:
 
-1. `Claude` або `Gemini` як manual учасник.
-2. `Llama 3.1` як основний локальний аналітик.
-3. `Gemma 2` або `DeepSeek-R1` як другий локальний голос.
+1. Click `▶ Автораунд`
+2. Review responses
+3. Read `Cross-check summary`
+4. Click `⚡ Автосинтез`
 
-Оптимальний принцип:
+Controlled path:
 
-- 2 локальні Ollama-моделі для швидкого авторану.
-- 1 зовнішній manual AI для контрастної думки.
+1. Use manual prompts for cloud chats
+2. Run local participants with `▶ Запустити`
+3. Compare and synthesize
 
-Якщо учасників занадто багато, summary стає менш різким. Для більшості задач достатньо 2-4 учасники.
+### 5. Decide next action
 
-### 5. Пройди перший раунд
+- If `agreements` are strong: move to implementation
+- If `conflicts` are important: start a new round in Debate/Critique mode
+- If `missing` points exist: ask a narrower follow-up question
 
-Є два нормальні сценарії.
+### 6. Export deliverable
 
-Сценарій A — швидкий авто-режим:
+Use `↓ MD` to export the complete session, including cross-check blocks and synthesis.
 
-1. Додай 2-3 Ollama-учасники.
-2. Натисни `▶ Автораунд`.
-3. Дочекайся відповідей у картках.
-4. Переглянь `Cross-check summary`.
-5. Натисни `⚡ Автосинтез` або використай уже згенеровану вижимку.
+## Session Controls
 
-Сценарій B — змішаний контрольований режим:
+In the Header menu (`Очистити`):
 
-1. Для manual AI відкрий `↗` або `📋 Початковий промпт`.
-2. Встав prompt у зовнішній AI і поверни відповідь у картку.
-3. Для локальних моделей натисни `▶ Запустити` або `▶ Автораунд`.
-4. Після двох і більше відповідей подивись `Cross-check summary`.
-5. Заверши раунд через `⚡ Автосинтез` або `🔀 Дистилювати`.
+- `Нова сесія` -> resets everything
+- `Очистити поточний раунд` -> clears responses/synthesis/cross-check in active round
+- `Видалити інші раунди` -> keeps only active round
 
-### 6. Читай summary правильно
+## Project Documents
 
-Блок `Cross-check summary` має три частини:
+- Product vision: `BRAINSTORM_CIRCLE.md`
+- MVP decisions: `MVP_DECISIONS.md`
+- Detailed spec: `SPEC.md`
+- Automation plan: `IMPLEMENTATION_SPEC.md`
 
-- `Збігаються` — де моделі фактично погодились. Це найсильніший сигнал.
-- `Розбіжності` — де є конфлікт припущень або підходів.
-- `Що ще не покрито` — які питання ще залишились відкритими.
-
-Практика така:
-
-- Якщо є сильний збіг — переносиш це в робоче рішення.
-- Якщо є розбіжність — запускаєш ще один раунд у `Дебати` або `Критика`.
-- Якщо є missing points — формулюєш наступне питання саме навколо них.
-
-### 7. Коли створювати новий раунд
-
-Не переходь у новий раунд просто тому, що можна.
-
-Переходь у `+ Раунд`, якщо:
-
-1. Є 1-2 головні розбіжності, які реально впливають на рішення.
-2. У summary видно, що моделі не покрили важливий кут.
-3. Треба заглибитись у підтему, а не перегенерувати те саме.
-
-Добрий другий раунд виглядає так:
-
-```text
-Ок, тепер звузимо питання: який із двох варіантів дає найменший ризик зриву дедлайну і чому?
-```
-
-### 8. Коли натискати які кнопки
-
-- `▶ Запустити` — одна Ollama-картка.
-- `▶ Автораунд` — всі auto-учасники поточного раунду.
-- `→ Надіслати` — дати відповідь одного AI іншому AI на критику або доповнення.
-- `↓ Поглибити` — продовжити думку цього ж учасника в наступному кроці.
-- `⚡ Автосинтез` — зібрати фінальну вижимку локально через Ollama.
-- `🔀 Дистилювати` — зробити manual synthesis prompt для зовнішнього AI.
-- `↓ MD` — зафіксувати результат раундів у Markdown.
-
-### 9. Рекомендований сценарій для реальної роботи
-
-Найпрактичніший workflow для більшості задач:
-
-1. Почни в режимі `Синтез`.
-2. Додай 2 Ollama-моделі й 1 manual AI.
-3. Прожени `Автораунд` для локальних моделей.
-4. Додай одну manual-відповідь від Claude або Gemini.
-5. Подивись `Cross-check summary`.
-6. Зроби `Автосинтез`.
-7. Якщо є конфлікт — створи новий раунд у `Дебати` або `Критика` тільки для цієї розбіжності.
-8. Після 2-3 раундів експортуй результат у Markdown.
-
-Це дає найкращий баланс між швидкістю, контролем і якістю.
-
-## Поточний фокус (Automation Phase)
-
-Мета фази: перейти від ручного copy-paste до one-click orchestration для нетехнічних користувачів.
-
-План включає:
-
-- Розширення reducer-моделі стану сесії
-- Controlled input для карток учасників
-- Нові App Router API handlers для генерації та оркестрації
-- Автоматичний синтез результату раунду
-
-Деталі payload/schema/action contracts описані в IMPLEMENTATION_SPEC.md.
-
-## Структура (основне)
+## Project Structure
 
 ```text
 app/
@@ -185,6 +159,11 @@ app/
   page.js
   layout.js
   globals.css
+  api/
+    health/ollama/route.js
+    ai/generate/route.js
+    brainstorm/run-round/route.js
+    brainstorm/synthesize/route.js
 components/
   ParticipantCard.jsx
   ParticipantPanel.jsx
@@ -195,8 +174,10 @@ components/
 hooks/
   useSession.js
   useOllama.js
+  useClipboardPaste.js
 lib/
   promptTemplates.js
   participants.js
   storage.js
+  server/ollama.js
 ```
