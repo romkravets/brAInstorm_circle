@@ -10,7 +10,25 @@ function timeAgo(ts) {
   return `${Math.floor(diff / 3600)}год тому`;
 }
 
-export default function Header({ session, savedAt, onReset, onExport, onNewRound, isRunActive = false }) {
+function getStageLabel(stage) {
+  if (stage === 'generating') return 'Генерація';
+  if (stage === 'synthesis') return 'Синтез';
+  if (stage === 'cross_check') return 'Порівняння';
+  return 'Очікування';
+}
+
+function getRunErrorMessage(error) {
+  const messages = {
+    no_runnable_participants: 'Додай хоча б одного auto-учасника.',
+    timeout: 'Одна з моделей відповідає занадто довго.',
+    ollama_unreachable: 'Ollama не запущений.',
+    model_not_found: 'Одна з моделей не встановлена.',
+    ollama_error: 'Під час запиту до Ollama сталася помилка.',
+  };
+  return messages[error] || 'Автозапуск завершився з помилкою.';
+}
+
+export default function Header({ session, savedAt, onReset, onExport, onNewRound, onRunRoundAuto, runMeta, isRunActive = false }) {
   const [editTitle, setEditTitle] = useState(false);
   const [titleVal,  setTitleVal]  = useState(session.title);
   const [tick,      setTick]      = useState(0);
@@ -22,12 +40,12 @@ export default function Header({ session, savedAt, onReset, onExport, onNewRound
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => { setTitleVal(session.title); }, [session.title]);
-
   function commitTitle() {
     if (titleVal.trim()) onReset({ title: titleVal.trim() });
     setEditTitle(false);
   }
+
+  const lastError = runMeta?.errors?.[runMeta.errors.length - 1] ?? '';
 
   return (
     <header
@@ -50,7 +68,10 @@ export default function Header({ session, savedAt, onReset, onExport, onNewRound
         />
       ) : (
         <button
-          onClick={() => setEditTitle(true)}
+          onClick={() => {
+            setTitleVal(session.title);
+            setEditTitle(true);
+          }}
           className="font-medium text-base hover:opacity-70 transition-opacity text-left"
           style={{ color: 'var(--bc-text)' }}
           title="Клік — перейменувати"
@@ -66,7 +87,31 @@ export default function Header({ session, savedAt, onReset, onExport, onNewRound
         </span>
       )}
 
+      {runMeta?.status === 'running' && (
+        <span className="text-xs hidden lg:block" style={{ color: 'var(--bc-accent)' }}>
+          {getStageLabel(runMeta.stage)} · {runMeta.completed}/{runMeta.total}
+        </span>
+      )}
+
+      {runMeta?.status === 'failed' && lastError && (
+        <span className="text-xs hidden lg:block" style={{ color: 'var(--bc-danger)' }}>
+          {getRunErrorMessage(lastError)}
+        </span>
+      )}
+
       <div className="ml-auto flex items-center gap-2">
+        <button
+          onClick={onRunRoundAuto}
+          disabled={isRunActive}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hidden md:block"
+          style={isRunActive
+            ? { color: 'var(--bc-text-hint)', background: 'var(--bc-border)', cursor: 'not-allowed' }
+            : { color: '#fff', background: 'var(--bc-accent)' }
+          }
+        >
+          ▶ Автораунд
+        </button>
+
         {/* New round */}
         <button
           onClick={onNewRound}

@@ -44,6 +44,20 @@ function hydrateSessionShape(session) {
   if (!session) return null;
 
   const participants = session.participants ?? [];
+  const rounds = (session.rounds ?? []).map((round) => ({
+    ...round,
+    crossCheck: {
+      agreements: Array.isArray(round?.crossCheck?.agreements)
+        ? round.crossCheck.agreements
+        : [],
+      conflicts: Array.isArray(round?.crossCheck?.conflicts)
+        ? round.crossCheck.conflicts
+        : [],
+      missing: Array.isArray(round?.crossCheck?.missing)
+        ? round.crossCheck.missing
+        : [],
+    },
+  }));
   const participantMeta = { ...(session.participantMeta ?? {}) };
   for (const p of participants) {
     if (!participantMeta[p.id]) {
@@ -58,6 +72,7 @@ function hydrateSessionShape(session) {
 
   return {
     ...session,
+    rounds,
     runMeta: {
       ...createRunMeta(),
       ...(session.runMeta ?? {}),
@@ -81,6 +96,11 @@ const DEFAULT_SESSION = () => {
         id: 1,
         label: "Раунд 1",
         responses: {},
+        crossCheck: {
+          agreements: [],
+          conflicts: [],
+          missing: [],
+        },
         synthesis: "",
         createdAt: Date.now(),
         completedAt: null,
@@ -170,6 +190,28 @@ function reducer(state, action) {
       return { ...state, rounds, updatedAt: now };
     }
 
+    case "SET_CROSS_CHECK": {
+      const rounds = state.rounds.map((r) =>
+        r.id === action.roundId
+          ? {
+              ...r,
+              crossCheck: {
+                agreements: Array.isArray(action.crossCheck?.agreements)
+                  ? action.crossCheck.agreements
+                  : [],
+                conflicts: Array.isArray(action.crossCheck?.conflicts)
+                  ? action.crossCheck.conflicts
+                  : [],
+                missing: Array.isArray(action.crossCheck?.missing)
+                  ? action.crossCheck.missing
+                  : [],
+              },
+            }
+          : r,
+      );
+      return { ...state, rounds, updatedAt: now };
+    }
+
     case "RENAME_ROUND": {
       const rounds = state.rounds.map((r) =>
         r.id === action.roundId ? { ...r, label: action.label } : r,
@@ -188,6 +230,11 @@ function reducer(state, action) {
           id: nextId,
           label: `Раунд ${nextId}`,
           responses: {},
+          crossCheck: {
+            agreements: [],
+            conflicts: [],
+            missing: [],
+          },
           synthesis: "",
           createdAt: now,
           completedAt: null,
@@ -214,6 +261,7 @@ function reducer(state, action) {
     }
 
     case "START_ROUND_RUN":
+      if (state.runMeta?.status === "running") return state;
       return {
         ...state,
         runMeta: {
@@ -381,14 +429,12 @@ export function useSession() {
   });
 
   const [savedAt, setSavedAt] = useState(null);
-  const [isNew, setIsNew] = useState(false);
+  const [isNew, setIsNew] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !loadSession();
+  });
   const saveTimer = useRef(null);
   const isFirst = useRef(true);
-
-  // detect first-time user (no saved session)
-  useEffect(() => {
-    if (typeof window !== "undefined" && !loadSession()) setIsNew(true);
-  }, []);
 
   // autosave debounced 2s
   useEffect(() => {

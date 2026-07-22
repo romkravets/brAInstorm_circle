@@ -1,11 +1,19 @@
-'use client';
-import { useEffect, useRef } from 'react';
+"use client";
+import { useEffect, useRef } from "react";
 
 // Fires onPaste({ text, targetParticipant }) when user switches back to this tab
 // and clipboard has text > 50 chars and at least one participant card is empty.
-export function useClipboardPaste({ participants, currentRound, activeParticipantId, onPaste }) {
+export function useClipboardPaste({
+  participants,
+  currentRound,
+  activeParticipantId,
+  onPaste,
+}) {
   const callbackRef = useRef(onPaste);
-  callbackRef.current = onPaste;
+
+  useEffect(() => {
+    callbackRef.current = onPaste;
+  }, [onPaste]);
 
   useEffect(() => {
     async function handleFocus() {
@@ -15,8 +23,8 @@ export function useClipboardPaste({ participants, currentRound, activeParticipan
         if (!text || text.length < 50) return;
 
         const target = activeParticipantId
-          ? participants.find(p => p.id === activeParticipantId)
-          : participants.find(p => !currentRound.responses[p.id]);
+          ? participants.find((p) => p.id === activeParticipantId)
+          : participants.find((p) => !currentRound.responses[p.id]);
 
         if (!target) return;
 
@@ -26,7 +34,7 @@ export function useClipboardPaste({ participants, currentRound, activeParticipan
       }
     }
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [participants, currentRound, activeParticipantId]);
 }

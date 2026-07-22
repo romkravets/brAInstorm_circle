@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { AI_PRESETS, ROLES, isSafeUrl } from '../lib/participants.js';
+import { useEffect, useState } from 'react';
 import { useOllama } from '../hooks/useOllama.js';
+import { AI_PRESETS, ROLES, isSafeUrl } from '../lib/participants.js';
 
 const CLOUD_PRESETS  = AI_PRESETS.filter(p => p.respondMode === 'manual');
 const OLLAMA_PRESETS = AI_PRESETS.filter(p => p.respondMode === 'ollama');
@@ -145,7 +145,7 @@ export default function AddParticipantModal({ onAdd, onClose }) {
           {(tab === 'custom' || tab === 'custom-ollama') && (
             <div className="flex flex-col gap-3">
               <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--bc-text-muted)' }}>Ім'я</label>
+                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--bc-text-muted)' }}>Ім’я</label>
                 <input
                   className="w-full px-3 py-2 rounded-xl border outline-none text-sm"
                   style={{ borderColor: 'var(--bc-border)', color: 'var(--bc-text)', background: 'var(--bc-surface)' }}

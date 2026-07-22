@@ -12,18 +12,7 @@ export default function ParticipantCard({
   const [expanded,    setExpanded]    = useState(false);
   const [sendMenu,    setSendMenu]    = useState(false);
   const [ollamaError, setOllamaError] = useState('');
-  const [mounted,     setMounted]     = useState(false);
-  const [draft,       setDraft]       = useState(response);
-  const debounceRef   = useRef(null);
   const menuRef       = useRef(null);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    setDraft(response ?? '');
-  }, [response]);
-
-  useEffect(() => () => clearTimeout(debounceRef.current), []);
 
   // Close menu on outside click
   useEffect(() => {
@@ -32,12 +21,6 @@ export default function ParticipantCard({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
-
-  const handleTextChange = useCallback((text) => {
-    setDraft(text);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onResponseChange(text), 300);
-  }, [onResponseChange]);
 
   const handleRunOllama = useCallback(async () => {
     setOllamaError('');
@@ -49,9 +32,16 @@ export default function ParticipantCard({
   }, [onRunOllama, participant]);
 
   const { color, name, respondMode, url } = participant;
-  const cardText = draft ?? '';
+  const cardText = response ?? '';
   const isEmpty = !cardText;
   const cardError = runError || ollamaError;
+  const statusLabel = runStatus === 'running'
+    ? '⟳ Генерує'
+    : runStatus === 'done'
+      ? '✓ Готово'
+      : cardError
+        ? '⚠ Помилка'
+        : '';
 
   const cardStyle = {
     background: isEmpty ? 'var(--bc-surface)' : color.bg,
@@ -75,6 +65,12 @@ export default function ParticipantCard({
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: color.bg, color: color.text, border: `1px solid ${color.border}` }}>
             {respondMode === 'ollama' ? '⚡ Ollama' : respondMode === 'api' ? '☁️ API' : '🔗 Manual'}
           </span>
+
+          {statusLabel && (
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bc-surface)', color: cardError ? 'var(--bc-danger)' : 'var(--bc-text-muted)', border: '1px solid var(--bc-border)' }}>
+              {statusLabel}
+            </span>
+          )}
 
           {/* Open AI link (manual only) */}
           {respondMode === 'manual' && url && (
@@ -119,7 +115,7 @@ export default function ParticipantCard({
                 </button>
                 <div className="my-1 border-t" style={{ borderColor: 'var(--bc-border)' }} />
                 <button
-                  onClick={() => { setDraft(''); onResponseChange(''); setMenuOpen(false); }}
+                  onClick={() => { onResponseChange(''); setMenuOpen(false); }}
                   className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-50"
                   style={{ color: 'var(--bc-danger)' }}
                 >
@@ -148,7 +144,7 @@ export default function ParticipantCard({
             style={{ color: 'var(--bc-text)', minHeight: 120 }}
             placeholder={`Вставте відповідь від ${name}...`}
             value={cardText}
-            onChange={e => handleTextChange(e.target.value)}
+            onChange={e => onResponseChange(e.target.value)}
             onClick={e => e.stopPropagation()}
           />
         </div>
@@ -231,7 +227,7 @@ export default function ParticipantCard({
       </div>
 
       {/* Fullscreen expanded modal */}
-      {mounted && expanded && createPortal(
+      {typeof document !== 'undefined' && expanded && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div
             className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl shadow-2xl"
