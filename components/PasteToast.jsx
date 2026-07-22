@@ -1,19 +1,15 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 export default function PasteToast({ toast, onConfirm, onDismiss }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
-
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(onDismiss, 8000);
     return () => clearTimeout(timer);
   }, [toast, onDismiss]);
 
-  if (!mounted || !toast) return null;
+  if (typeof document === 'undefined' || !toast) return null;
 
   const preview = toast.text.slice(0, 80) + (toast.text.length > 80 ? '...' : '');
 

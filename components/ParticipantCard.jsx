@@ -1,31 +1,21 @@
 'use client';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ollamaErrorMessage } from '../hooks/useOllama.js';
 
 export default function ParticipantCard({
   participant, response, isLoading, isActive, otherParticipants,
   onResponseChange, onPromptRequest, onRunOllama, onSetActive,
+  runStatus = 'idle', runError = '',
 }) {
   const [draft,       setDraft]       = useState(response ?? '');
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [expanded,    setExpanded]    = useState(false);
   const [sendMenu,    setSendMenu]    = useState(false);
   const [ollamaError, setOllamaError] = useState('');
-  const [mounted,     setMounted]     = useState(false);
-  const debounceRef   = useRef(null);
   const menuRef       = useRef(null);
 
   useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    setDraft(response ?? '');
-  }, [response]);
-
-  useEffect(() => {
-    return () => clearTimeout(debounceRef.current);
-  }, []);
-
   // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
@@ -33,11 +23,6 @@ export default function ParticipantCard({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
-
-  const handleTextChange = useCallback((text) => {
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onResponseChange(text), 300);
-  }, [onResponseChange]);
 
   const handleRunOllama = useCallback(async () => {
     setOllamaError('');
@@ -49,7 +34,16 @@ export default function ParticipantCard({
   }, [onRunOllama, participant]);
 
   const { color, name, respondMode, url } = participant;
-  const isEmpty = !response;
+  const cardText = response ?? '';
+  const isEmpty = !cardText;
+  const cardError = runError || ollamaError;
+  const statusLabel = runStatus === 'running'
+    ? '⟳ Генерує'
+    : runStatus === 'done'
+      ? '✓ Готово'
+      : cardError
+        ? '⚠ Помилка'
+        : '';
 
   const cardStyle = {
     background: isEmpty ? 'var(--bc-surface)' : color.bg,
@@ -67,12 +61,18 @@ export default function ParticipantCard({
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: color.dot }} />
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: color.dot }} />
           <span className="font-medium text-sm flex-1 truncate" style={{ color: color.text }}>{name}</span>
 
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: color.bg, color: color.text, border: `1px solid ${color.border}` }}>
             {respondMode === 'ollama' ? '⚡ Ollama' : respondMode === 'api' ? '☁️ API' : '🔗 Manual'}
           </span>
+
+          {statusLabel && (
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bc-surface)', color: cardError ? 'var(--bc-danger)' : 'var(--bc-text-muted)', border: '1px solid var(--bc-border)' }}>
+              {statusLabel}
+            </span>
+          )}
 
           {/* Open AI link (manual only) */}
           {respondMode === 'manual' && url && (
@@ -97,7 +97,7 @@ export default function ParticipantCard({
             </button>
             {menuOpen && (
               <div
-                className="absolute right-0 top-full mt-1 z-20 rounded-xl shadow-xl py-1 min-w-[160px]"
+                className="absolute right-0 top-full mt-1 z-20 rounded-xl shadow-xl py-1 min-w-40"
                 style={{ background: 'var(--bc-surface)', border: '1px solid var(--bc-border)' }}
                 onClick={e => e.stopPropagation()}
               >
@@ -149,20 +149,16 @@ export default function ParticipantCard({
             className="w-full bg-transparent outline-none text-sm leading-relaxed"
             style={{ color: 'var(--bc-text)', minHeight: 120 }}
             placeholder={`Вставте відповідь від ${name}...`}
-            value={draft}
-            onChange={e => {
-              const nextValue = e.target.value;
-              setDraft(nextValue);
-              handleTextChange(nextValue);
-            }}
+            value={cardText}
+            onChange={e => onResponseChange(e.target.value)}
             onClick={e => e.stopPropagation()}
           />
         </div>
 
         {/* Ollama error */}
-        {ollamaError && (
+        {cardError && (
           <div className="mx-4 mb-2 px-3 py-2 rounded-lg text-xs" style={{ background: '#fdeaea', color: 'var(--bc-danger)' }}>
-            {ollamaError}
+            {cardError}
           </div>
         )}
 
@@ -172,29 +168,21 @@ export default function ParticipantCard({
           {respondMode === 'ollama' && (
             <button
               onClick={(e) => { e.stopPropagation(); handleRunOllama(); }}
-              disabled={isLoading}
+              disabled={isLoading || runStatus === 'running'}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              style={{ background: isLoading ? 'var(--bc-border)' : color.dot, color: '#fff', cursor: isLoading ? 'not-allowed' : 'pointer' }}
+              style={{ background: (isLoading || runStatus === 'running') ? 'var(--bc-border)' : color.dot, color: '#fff', cursor: (isLoading || runStatus === 'running') ? 'not-allowed' : 'pointer' }}
             >
-              {isLoading ? '⟳ Генерує...' : '▶ Запустити'}
+              {(isLoading || runStatus === 'running') ? '⟳ Генерує...' : '▶ Запустити'}
             </button>
           )}
 
           {/* Send to others */}
           <div className="relative">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (otherParticipants?.length === 1) {
-                  onPromptRequest('cross', participant, otherParticipants[0]);
-                  setSendMenu(false);
-                  return;
-                }
-                setSendMenu(v => !v);
-              }}
-              disabled={!response}
+              onClick={(e) => { e.stopPropagation(); setSendMenu(v => !v); }}
+              disabled={!cardText}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              style={response
+              style={cardText
                 ? { color: color.text, background: color.bg, border: `1px solid ${color.border}` }
                 : { color: 'var(--bc-text-hint)', cursor: 'not-allowed' }
               }
@@ -203,7 +191,7 @@ export default function ParticipantCard({
             </button>
             {sendMenu && (
               <div
-                className="absolute left-0 bottom-full mb-1 z-20 rounded-xl shadow-xl py-1 min-w-[150px]"
+                className="absolute left-0 bottom-full mb-1 z-20 rounded-xl shadow-xl py-1 min-w-37.5"
                 style={{ background: 'var(--bc-surface)', border: '1px solid var(--bc-border)' }}
                 onClick={e => e.stopPropagation()}
               >
@@ -222,9 +210,9 @@ export default function ParticipantCard({
           {/* Deepen */}
           <button
             onClick={(e) => { e.stopPropagation(); onPromptRequest('deepen', participant, null); }}
-            disabled={!response}
+            disabled={!cardText}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={response
+            style={cardText
               ? { color: color.text, background: color.bg, border: `1px solid ${color.border}` }
               : { color: 'var(--bc-text-hint)', cursor: 'not-allowed' }
             }
@@ -245,7 +233,7 @@ export default function ParticipantCard({
       </div>
 
       {/* Fullscreen expanded modal */}
-      {mounted && expanded && createPortal(
+      {typeof document !== 'undefined' && expanded && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div
             className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl shadow-2xl"
@@ -290,7 +278,7 @@ function SendTargetList({ targets, onSelect }) {
       className="w-full flex items-center gap-2 px-4 py-2 text-sm text-left transition-colors hover:bg-gray-50"
       style={{ color: 'var(--bc-text)' }}
     >
-      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color.dot }} />
+      <div className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color.dot }} />
       {t.name}
     </button>
   ));

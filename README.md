@@ -1,36 +1,202 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Brainstorm Circle
 
-## Getting Started
+Інструмент для колективного брейншторму між кількома AI-моделями.
 
-First, run the development server:
+## Що це зараз
+
+Поточний застосунок:
+
+- Next.js 16 (App Router)
+- Локальне збереження сесії через localStorage
+- Ручний режим (prompt copy-paste)
+- Локальний авто-режим через Ollama
+
+## Ключові документи
+
+- Product vision: BRAINSTORM_CIRCLE.md
+- MVP decisions: MVP_DECISIONS.md
+- Detailed product spec: SPEC.md
+- Automation implementation plan: IMPLEMENTATION_SPEC.md
+
+## Запуск
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Відкрий http://localhost:3000
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Ідеальний Workflow
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Підготуй середовище
 
-## Learn More
+Якщо хочеш тільки manual flow, достатньо `npm run dev`.
 
-To learn more about Next.js, take a look at the following resources:
+Якщо хочеш one-click automation через локальні моделі, окремо запусти Ollama:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+OLLAMA_ORIGINS=* ollama serve
+ollama pull llama3.1
+ollama pull gemma2
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`Автораунд` і `Автосинтез` працюють тільки коли в сесії є хоча б один Ollama-учасник.
 
-## Deploy on Vercel
+### 2. Сформулюй питання
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Впиши одне чітке питання у верхнє поле.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Добрий формат:
+
+```text
+Як нам запустити MVP за 2 тижні з мінімальним ризиком для якості?
+```
+
+Поганий формат:
+
+```text
+Що думаєш?
+```
+
+Чим конкретніше питання, тим корисніші initial prompts, cross-check і фінальна вижимка.
+
+### 3. Обери режим під задачу
+
+- `Синтез ✨` — коли хочеш зібрати найкраще з кількох точок зору.
+- `Дебати ⚔️` — коли треба зіткнути альтернативні позиції.
+- `Критика 🔍` — коли треба знайти слабкі місця рішення.
+- `Глибина 🌊` — коли плануєш кілька раундів із поступовим уточненням.
+
+Практично:
+
+- Для продукту або контенту починай із `Синтез`.
+- Для технічного вибору між двома підходами краще `Дебати`.
+- Для ревізії ризиків перед запуском краще `Критика`.
+
+### 4. Збери правильний набір учасників
+
+Найкращий базовий сетап для змішаного режиму:
+
+1. `Claude` або `Gemini` як manual учасник.
+2. `Llama 3.1` як основний локальний аналітик.
+3. `Gemma 2` або `DeepSeek-R1` як другий локальний голос.
+
+Оптимальний принцип:
+
+- 2 локальні Ollama-моделі для швидкого авторану.
+- 1 зовнішній manual AI для контрастної думки.
+
+Якщо учасників занадто багато, summary стає менш різким. Для більшості задач достатньо 2-4 учасники.
+
+### 5. Пройди перший раунд
+
+Є два нормальні сценарії.
+
+Сценарій A — швидкий авто-режим:
+
+1. Додай 2-3 Ollama-учасники.
+2. Натисни `▶ Автораунд`.
+3. Дочекайся відповідей у картках.
+4. Переглянь `Cross-check summary`.
+5. Натисни `⚡ Автосинтез` або використай уже згенеровану вижимку.
+
+Сценарій B — змішаний контрольований режим:
+
+1. Для manual AI відкрий `↗` або `📋 Початковий промпт`.
+2. Встав prompt у зовнішній AI і поверни відповідь у картку.
+3. Для локальних моделей натисни `▶ Запустити` або `▶ Автораунд`.
+4. Після двох і більше відповідей подивись `Cross-check summary`.
+5. Заверши раунд через `⚡ Автосинтез` або `🔀 Дистилювати`.
+
+### 6. Читай summary правильно
+
+Блок `Cross-check summary` має три частини:
+
+- `Збігаються` — де моделі фактично погодились. Це найсильніший сигнал.
+- `Розбіжності` — де є конфлікт припущень або підходів.
+- `Що ще не покрито` — які питання ще залишились відкритими.
+
+Практика така:
+
+- Якщо є сильний збіг — переносиш це в робоче рішення.
+- Якщо є розбіжність — запускаєш ще один раунд у `Дебати` або `Критика`.
+- Якщо є missing points — формулюєш наступне питання саме навколо них.
+
+### 7. Коли створювати новий раунд
+
+Не переходь у новий раунд просто тому, що можна.
+
+Переходь у `+ Раунд`, якщо:
+
+1. Є 1-2 головні розбіжності, які реально впливають на рішення.
+2. У summary видно, що моделі не покрили важливий кут.
+3. Треба заглибитись у підтему, а не перегенерувати те саме.
+
+Добрий другий раунд виглядає так:
+
+```text
+Ок, тепер звузимо питання: який із двох варіантів дає найменший ризик зриву дедлайну і чому?
+```
+
+### 8. Коли натискати які кнопки
+
+- `▶ Запустити` — одна Ollama-картка.
+- `▶ Автораунд` — всі auto-учасники поточного раунду.
+- `→ Надіслати` — дати відповідь одного AI іншому AI на критику або доповнення.
+- `↓ Поглибити` — продовжити думку цього ж учасника в наступному кроці.
+- `⚡ Автосинтез` — зібрати фінальну вижимку локально через Ollama.
+- `🔀 Дистилювати` — зробити manual synthesis prompt для зовнішнього AI.
+- `↓ MD` — зафіксувати результат раундів у Markdown.
+
+### 9. Рекомендований сценарій для реальної роботи
+
+Найпрактичніший workflow для більшості задач:
+
+1. Почни в режимі `Синтез`.
+2. Додай 2 Ollama-моделі й 1 manual AI.
+3. Прожени `Автораунд` для локальних моделей.
+4. Додай одну manual-відповідь від Claude або Gemini.
+5. Подивись `Cross-check summary`.
+6. Зроби `Автосинтез`.
+7. Якщо є конфлікт — створи новий раунд у `Дебати` або `Критика` тільки для цієї розбіжності.
+8. Після 2-3 раундів експортуй результат у Markdown.
+
+Це дає найкращий баланс між швидкістю, контролем і якістю.
+
+## Поточний фокус (Automation Phase)
+
+Мета фази: перейти від ручного copy-paste до one-click orchestration для нетехнічних користувачів.
+
+План включає:
+
+- Розширення reducer-моделі стану сесії
+- Controlled input для карток учасників
+- Нові App Router API handlers для генерації та оркестрації
+- Автоматичний синтез результату раунду
+
+Деталі payload/schema/action contracts описані в IMPLEMENTATION_SPEC.md.
+
+## Структура (основне)
+
+```text
+app/
+  BrainstormApp.jsx
+  page.js
+  layout.js
+  globals.css
+components/
+  ParticipantCard.jsx
+  ParticipantPanel.jsx
+  QuestionBar.jsx
+  RoundTabs.jsx
+  SynthesisBlock.jsx
+  PromptDrawer.jsx
+hooks/
+  useSession.js
+  useOllama.js
+lib/
+  promptTemplates.js
+  participants.js
+  storage.js
+```

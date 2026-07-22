@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function PromptDrawer({ isOpen, promptText, title, targetUrl, onClose }) {
   const [copied, setCopied] = useState(false);
@@ -11,9 +11,6 @@ export default function PromptDrawer({ isOpen, promptText, title, targetUrl, onC
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
-
-  // Reset copied state when drawer reopens
-  useEffect(() => { if (isOpen) setCopied(false); }, [isOpen]);
 
   const copy = useCallback(async () => {
     try {
