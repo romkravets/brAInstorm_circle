@@ -8,12 +8,14 @@ export default function ParticipantCard({
   onResponseChange, onPromptRequest, onRunOllama, onSetActive,
   runStatus = 'idle', runError = '',
 }) {
+  const [draft,       setDraft]       = useState(response ?? '');
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [expanded,    setExpanded]    = useState(false);
   const [sendMenu,    setSendMenu]    = useState(false);
   const [ollamaError, setOllamaError] = useState('');
   const menuRef       = useRef(null);
 
+  useEffect(() => { setMounted(true); }, []);
   // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
@@ -115,7 +117,11 @@ export default function ParticipantCard({
                 </button>
                 <div className="my-1 border-t" style={{ borderColor: 'var(--bc-border)' }} />
                 <button
-                  onClick={() => { onResponseChange(''); setMenuOpen(false); }}
+                  onClick={() => {
+                    setDraft('');
+                    onResponseChange('');
+                    setMenuOpen(false);
+                  }}
                   className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-50"
                   style={{ color: 'var(--bc-danger)' }}
                 >
