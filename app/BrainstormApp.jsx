@@ -166,7 +166,6 @@ export default function Page() {
   }, [buildInitialPrompt, callGenerateEndpoint, currentRound.id, dispatch]);
 
   const handleAutoSynthesize = useCallback(async (responsesOverride = null) => {
-    const synthesisModel = session.participants.find((participant) => participant.respondMode !== 'manual')?.ollamaModel;
     const responseEntries = responsesOverride
       ? session.participants
           .filter((participant) => responsesOverride[participant.id])
@@ -175,7 +174,16 @@ export default function Page() {
           .filter((participant) => currentRound.responses[participant.id])
           .map((participant) => ({ participantId: participant.id, name: participant.name, text: currentRound.responses[participant.id] }));
 
-    if (!synthesisModel || responseEntries.length < 2) {
+    const responseSource = responsesOverride ?? currentRound.responses;
+    const synthesisParticipant = session.participants.find((participant) => (
+      participant.respondMode !== 'manual'
+      && responseSource[participant.id]
+      && participant.ollamaModel
+    )) ?? session.participants.find((participant) => participant.respondMode !== 'manual' && participant.ollamaModel);
+
+    const synthesisModel = synthesisParticipant?.ollamaModel || '';
+
+    if (responseEntries.length < 2) {
       throw new Error('no_runnable_participants');
     }
 
@@ -295,7 +303,10 @@ export default function Page() {
           savedAt={savedAt}
             runMeta={runMeta}
           isRunActive={runMeta?.status === 'running'}
-          onReset={({ title }) => dispatch({ type: 'SET_TITLE', title })}
+          onRename={({ title }) => dispatch({ type: 'SET_TITLE', title })}
+          onResetSession={() => dispatch({ type: 'RESET' })}
+          onClearCurrentRound={() => dispatch({ type: 'CLEAR_CURRENT_ROUND' })}
+          onKeepOnlyCurrentRound={() => dispatch({ type: 'KEEP_ONLY_CURRENT_ROUND' })}
           onExport={() => exportMarkdown(session)}
             onRunRoundAuto={handleRunRoundAuto}
           onNewRound={() => dispatch({ type: 'NEW_ROUND' })}

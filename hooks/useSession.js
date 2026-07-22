@@ -260,6 +260,54 @@ function reducer(state, action) {
       };
     }
 
+    case "CLEAR_CURRENT_ROUND": {
+      if (state.runMeta?.status === "running") return state;
+      const rounds = state.rounds.map((round) =>
+        round.id === state.currentRound
+          ? {
+              ...round,
+              responses: {},
+              crossCheck: {
+                agreements: [],
+                conflicts: [],
+                missing: [],
+              },
+              synthesis: "",
+              completedAt: null,
+            }
+          : round,
+      );
+
+      return {
+        ...state,
+        rounds,
+        runMeta: createRunMeta(),
+        participantMeta: createParticipantMeta(state.participants),
+        updatedAt: now,
+      };
+    }
+
+    case "KEEP_ONLY_CURRENT_ROUND": {
+      if (state.runMeta?.status === "running") return state;
+      const currentRound = state.rounds.find(
+        (round) => round.id === state.currentRound,
+      );
+      if (!currentRound) return state;
+
+      return {
+        ...state,
+        rounds: [
+          {
+            ...currentRound,
+            completedAt: null,
+          },
+        ],
+        runMeta: createRunMeta(),
+        participantMeta: createParticipantMeta(state.participants),
+        updatedAt: now,
+      };
+    }
+
     case "START_ROUND_RUN":
       if (state.runMeta?.status === "running") return state;
       return {

@@ -32,6 +32,17 @@ export default function AddParticipantModal({ onAdd, onClose }) {
     onClose();
   }
 
+  function addInstalledModel(modelName) {
+    onAdd({
+      name: modelName,
+      respondMode: 'ollama',
+      url: '',
+      ollamaModel: modelName,
+      role: 'Аналітик',
+    });
+    onClose();
+  }
+
   function addCustom() {
     if (tab === 'custom') {
       if (!customName.trim()) return;
@@ -117,21 +128,53 @@ export default function AddParticipantModal({ onAdd, onClose }) {
                   return (
                     <button
                       key={p.name}
-                      onClick={() => selectPreset(p)}
+                      onClick={() => { if (installed || !ollamaStatus) selectPreset(p); }}
+                      disabled={Boolean(ollamaStatus?.running) && !installed}
                       className="flex items-center gap-3 p-3 rounded-xl border text-left transition-colors hover:border-[var(--bc-accent)]"
-                      style={{ borderColor: 'var(--bc-border)', opacity: ollamaStatus && !installed ? 0.5 : 1 }}
+                      style={{
+                        borderColor: installed ? 'var(--bc-border)' : 'var(--bc-border)',
+                        opacity: ollamaStatus && !installed ? 0.5 : 1,
+                        cursor: ollamaStatus?.running && !installed ? 'not-allowed' : 'pointer',
+                      }}
                     >
                       <span className="text-lg">⚡</span>
                       <div>
                         <div className="text-sm font-medium" style={{ color: 'var(--bc-text)' }}>{p.name}</div>
                         <div className="text-xs" style={{ color: installed ? 'var(--bc-success)' : 'var(--bc-text-hint)' }}>
-                          {installed ? '✓ встановлена' : p.ollamaModel}
+                          {installed ? '✓ встановлена' : `не знайдена: ${p.ollamaModel}`}
                         </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
+
+              {ollamaStatus?.running && ollamaStatus.models.length > 0 && (
+                <div className="mt-4 rounded-xl border p-3" style={{ borderColor: 'var(--bc-border)', background: 'var(--bc-bg)' }}>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--bc-text-hint)' }}>
+                    Встановлені моделі
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {ollamaStatus.models.map((modelName) => (
+                      <button
+                        key={modelName}
+                        onClick={() => addInstalledModel(modelName)}
+                        className="rounded-lg border px-3 py-1.5 text-xs transition-colors hover:border-[var(--bc-accent)]"
+                        style={{ borderColor: 'var(--bc-border)', color: 'var(--bc-text)' }}
+                      >
+                        + {modelName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {ollamaStatus?.running && (
+                <p className="mt-3 text-xs" style={{ color: 'var(--bc-text-hint)' }}>
+                  Якщо бачиш `model_not_found`, обери модель зі списку вище або додай її через `+ Своя модель Ollama`.
+                </p>
+              )}
+
               <button
                 onClick={() => setTab('custom-ollama')}
                 className="mt-3 w-full py-2 rounded-xl text-sm border transition-colors"

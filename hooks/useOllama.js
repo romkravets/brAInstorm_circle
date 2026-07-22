@@ -16,7 +16,7 @@ export function useOllama() {
       const data = await res.json();
       setOllamaStatus({
         running: true,
-        models: (data.models ?? []).map((m) => m.name),
+        models: data.models ?? [],
       });
     } catch {
       setOllamaStatus({ running: false, models: [] });

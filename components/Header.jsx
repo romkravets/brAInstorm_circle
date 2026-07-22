@@ -28,11 +28,25 @@ function getRunErrorMessage(error) {
   return messages[error] || 'Автозапуск завершився з помилкою.';
 }
 
-export default function Header({ session, savedAt, onReset, onExport, onNewRound, onRunRoundAuto, runMeta, isRunActive = false }) {
+export default function Header({
+  session,
+  savedAt,
+  onRename,
+  onResetSession,
+  onClearCurrentRound,
+  onKeepOnlyCurrentRound,
+  onExport,
+  onNewRound,
+  onRunRoundAuto,
+  runMeta,
+  isRunActive = false,
+}) {
   const [editTitle, setEditTitle] = useState(false);
   const [titleVal,  setTitleVal]  = useState(session.title);
   const [tick,      setTick]      = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const titleRef = useRef(null);
+  const menuRef = useRef(null);
 
   // refresh "X хв тому" every 30s
   useEffect(() => {
@@ -40,8 +54,19 @@ export default function Header({ session, savedAt, onReset, onExport, onNewRound
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (event) => {
+      if (!menuRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
   function commitTitle() {
-    if (titleVal.trim()) onReset({ title: titleVal.trim() });
+    if (titleVal.trim()) onRename({ title: titleVal.trim() });
     setEditTitle(false);
   }
 
@@ -100,6 +125,65 @@ export default function Header({ session, savedAt, onReset, onExport, onNewRound
       )}
 
       <div className="ml-auto flex items-center gap-2">
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen((value) => !value)}
+            disabled={isRunActive}
+            className="px-3 py-1.5 rounded-lg text-sm transition-colors border"
+            style={isRunActive
+              ? { color: 'var(--bc-text-hint)', borderColor: 'var(--bc-border)', cursor: 'not-allowed' }
+              : { color: 'var(--bc-text-muted)', borderColor: 'var(--bc-border)' }
+            }
+            title="Дії із сесією"
+          >
+            Очистити ▾
+          </button>
+
+          {menuOpen && !isRunActive && (
+            <div
+              className="absolute right-0 top-full z-20 mt-2 min-w-56 rounded-xl border py-1 shadow-xl"
+              style={{ background: 'var(--bc-surface)', borderColor: 'var(--bc-border)' }}
+            >
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (window.confirm('Почати нову сесію і скинути всі раунди та відповіді?')) {
+                    onResetSession();
+                  }
+                }}
+                className="w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+                style={{ color: 'var(--bc-danger)' }}
+              >
+                Нова сесія
+              </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (window.confirm('Очистити відповіді, cross-check і вижимку поточного раунду?')) {
+                    onClearCurrentRound();
+                  }
+                }}
+                className="w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+                style={{ color: 'var(--bc-text)' }}
+              >
+                Очистити поточний раунд
+              </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (window.confirm('Видалити всі інші раунди і залишити лише поточний?')) {
+                    onKeepOnlyCurrentRound();
+                  }
+                }}
+                className="w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+                style={{ color: 'var(--bc-text)' }}
+              >
+                Видалити інші раунди
+              </button>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={onRunRoundAuto}
           disabled={isRunActive}
